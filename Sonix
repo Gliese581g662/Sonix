@@ -1,1 +1,212 @@
-loadstring(game:HttpGet("https://pastebin.com/raw/b2D4pAMm"))()
+-- [[ SONIX GARDEN HORIZONS v2.9.1 ]] 
+
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- [[ SYSTEM SERVICES ]]
+local RS = game:GetService("ReplicatedStorage")
+local Remotes = RS:WaitForChild("RemoteEvents")
+local lp = game.Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local VU = game:GetService("VirtualUser")
+
+-- [[ TARGETED FOLDER ]] 
+local ModelsFolder = Workspace:FindFirstChild("Models")
+
+-- [[ REMOTES ]]
+local PurchaseRemote = Remotes:WaitForChild("PurchaseShopItem")
+local SellRemote = Remotes:WaitForChild("SellItems")
+local PlantRemote = Remotes:WaitForChild("PlantSeed")
+
+getgenv().Sonix = {
+    InfSellAll = false,
+    AutoSellInventory = false,
+    SellThreshold = 10,
+    AutoSellEquipped = false,
+    SellSpeed = 0.5,
+    SelectedSeed = "Carrot Seed",
+    BulkAmount = 10,
+    AutoHarvestLegacy = false,
+    AutoHarvestSequential = false,
+    AutoPlant = false,
+    AntiAFK = false
+}
+
+local AllSeeds = {
+    "Carrot Seed", "Tomato Seed", "Potato Seed", "Wheat Seed", 
+    "Pumpkin Seed", "Corn Seed", "Strawberry Seed", "Blueberry Seed", 
+    "Onion Seed", "Garlic Seed", "Cabbage Seed", "Banana Seed", 
+    "Apple Seed", "Plum Seed", "Cherry Seed", "Mushroom Seed", "Rose Seed"
+}
+
+-- [[ UI INITIALIZATION ]]
+local Window = Rayfield:CreateWindow({
+    Name = "Sonix garden horizons",
+    LoadingTitle = "Sonix garden horizons (v2.9.1)",
+    LoadingSubtitle = "very skid",
+    ConfigurationSaving = {Enabled = true, Folder = "SonixGarden"}
+})
+
+-- [[ TABS ]]
+local EconomyTab = Window:CreateTab("Economy", 4483362458)
+local MarketTab = Window:CreateTab("Market", 4483362458)
+local FarmTab = Window:CreateTab("Farming", 4483362458)
+local VisualTab = Window:CreateTab("Visuals", 4483362458)
+local WorldTab = Window:CreateTab("World", 4483362458)
+local SettingsTab = Window:CreateTab("Settings", 4483362458)
+
+--- [[ ECONOMY TAB ]] ---
+EconomyTab:CreateSection("Selling Systems")
+EconomyTab:CreateToggle({
+    Name = "Infinite Sell All (Legacy)",
+    CurrentValue = false,
+    Callback = function(v) getgenv().Sonix.InfSellAll = v end,
+})
+EconomyTab:CreateToggle({
+    Name = "Threshold Auto-Sell",
+    CurrentValue = false,
+    Callback = function(v) getgenv().Sonix.AutoSellInventory = v end,
+})
+EconomyTab:CreateSlider({
+    Name = "Sell Threshold",
+    Range = {1, 50},
+    Increment = 1,
+    CurrentValue = 10,
+    Callback = function(v) getgenv().Sonix.SellThreshold = v end,
+})
+EconomyTab:CreateToggle({
+    Name = "Auto-Sell Equipped Item",
+    CurrentValue = false,
+    Callback = function(v) getgenv().Sonix.AutoSellEquipped = v end,
+})
+
+--- [[ MARKET TAB ]] ---
+MarketTab:CreateSection("Bulk Purchase")
+MarketTab:CreateDropdown({
+    Name = "Seed Selection",
+    Options = AllSeeds,
+    CurrentOption = "Carrot Seed",
+    Callback = function(Option) getgenv().Sonix.SelectedSeed = Option[1] end,
+})
+MarketTab:CreateButton({
+    Name = "Execute Bulk Buy",
+    Callback = function()
+        for i = 1, getgenv().Sonix.BulkAmount do
+            PurchaseRemote:InvokeServer("SeedShop", getgenv().Sonix.SelectedSeed)
+        end
+    end,
+})
+
+--- [[ FARMING TAB ]] ---
+FarmTab:CreateSection("Auto-Harvest Modes")
+FarmTab:CreateToggle({
+    Name = "Standard Harvest (Mass Scan)",
+    CurrentValue = false,
+    Callback = function(v) getgenv().Sonix.AutoHarvestLegacy = v end,
+})
+FarmTab:CreateToggle({
+    Name = "Sequential Harvest (Low Lag)",
+    CurrentValue = false,
+    Callback = function(v) getgenv().Sonix.AutoHarvestSequential = v end,
+})
+
+FarmTab:CreateSection("Planting")
+FarmTab:CreateToggle({
+    Name = "Auto-Plant At Feet",
+    CurrentValue = false,
+    Callback = function(v) getgenv().Sonix.AutoPlant = v end,
+})
+
+--- [[ VISUALS & WORLD ]] ---
+VisualTab:CreateSection("Upcoming")
+VisualTab:CreateLabel("Visual features coming soon...")
+
+WorldTab:CreateSection("Upcoming")
+WorldTab:CreateLabel("World features coming soon...")
+
+--- [[ SETTINGS TAB ]] ---
+SettingsTab:CreateSection("Safety & Utilities")
+SettingsTab:CreateToggle({
+    Name = "Anti-AFK Enabled",
+    CurrentValue = false,
+    Callback = function(v) getgenv().Sonix.AntiAFK = v end,
+})
+SettingsTab:CreateButton({
+    Name = "Destroy UI",
+    Callback = function() Rayfield:Destroy() end,
+})
+
+--- [[ CORE ENGINE LOOPS ]] ---
+
+-- 1. Sequential Harvest (Fast One-by-One)
+task.spawn(function()
+    while task.wait() do
+        if getgenv().Sonix.AutoHarvestSequential then
+            local target = ModelsFolder or Workspace
+            for _, obj in pairs(target:GetDescendants()) do
+                if not getgenv().Sonix.AutoHarvestSequential then break end
+                if obj:IsA("ProximityPrompt") and obj.ActionText == "Harvest" then
+                    fireproximityprompt(obj)
+                    task.wait(0.05)
+                end
+            end
+        end
+    end
+end)
+
+-- 2. Legacy Harvest
+task.spawn(function()
+    while task.wait(0.5) do
+        if getgenv().Sonix.AutoHarvestLegacy then
+            local target = ModelsFolder or Workspace
+            for _, obj in pairs(target:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") and obj.ActionText == "Harvest" then
+                    fireproximityprompt(obj)
+                end
+            end
+        end
+    end
+end)
+
+-- 3. Economy Loops
+task.spawn(function()
+    while task.wait(0.5) do
+        if getgenv().Sonix.InfSellAll then
+            SellRemote:InvokeServer("SellAll")
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(2) do
+        if getgenv().Sonix.AutoSellInventory then
+            local count = 0
+            for _, item in pairs(lp.Backpack:GetChildren()) do
+                if not item.Name:lower():find("seed") then count = count + 1 end
+            end
+            if count >= getgenv().Sonix.SellThreshold then
+                SellRemote:InvokeServer("SellAll")
+            end
+        end
+    end
+end)
+
+-- 4. Auto Plant
+task.spawn(function()
+    while task.wait(0.8) do
+        if getgenv().Sonix.AutoPlant and lp.Character then
+            local name = getgenv().Sonix.SelectedSeed:gsub(" Seed", "")
+            local pos = lp.Character.HumanoidRootPart.Position + Vector3.new(0,-3,0)
+            PlantRemote:InvokeServer(name, pos)
+        end
+    end
+end)
+
+-- 5. Anti-AFK
+lp.Idled:Connect(function()
+    if getgenv().Sonix.AntiAFK then
+        VU:Button2Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VU:Button2Up(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+    end
+end)
